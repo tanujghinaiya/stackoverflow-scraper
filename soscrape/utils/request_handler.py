@@ -1,6 +1,7 @@
 import os
 import requests
 
+from soscrape.utils.session import get_session
 from soscrape.utils.tor_session import TorSession
 
 
@@ -9,7 +10,7 @@ class RequestsHandler:
         self.max_renews = max_renews
         self.renew_list = tor_session_renew_list
         self.tor_session = TorSession()
-        self.session = requests.Session()
+        self.session = get_session(tor_session=self.tor_session)
 
     def get(self, url, attempt=0, **kwargs):
         try:
@@ -46,4 +47,5 @@ class RequestsHandler:
             return False
 
     def __del__(self):
+        self.tor_session.terminate()
         self.session.close()

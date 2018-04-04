@@ -1,8 +1,15 @@
 import requests
 
+from http import cookiejar  # Python 2: import cookielib as cookiejar
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 from random import choice
+
+
+class BlockAll(cookiejar.CookiePolicy):
+    return_ok = set_ok = domain_return_ok = path_return_ok = lambda self, *args, **kwargs: False
+    netscape = True
+    rfc2965 = hide_cookie2 = False
 
 
 def get_session(retries=5, backoff_factor=1, status_forcelist=(500, 502, 504), tor_session=None):
@@ -27,6 +34,8 @@ def get_session(retries=5, backoff_factor=1, status_forcelist=(500, 502, 504), t
     s.mount("http://", adapter)
     s.mount("https://", adapter)
     s.proxies = proxies
+
+    s.cookies.set_policy(BlockAll())
 
     return s
 

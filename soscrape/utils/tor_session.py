@@ -12,38 +12,44 @@ from stem.util import term
 
 
 class TorSession:
-    def __init__(self, socks_port=None, data_directory=None, control_port=None, control_password=None):
-        if socks_port is None:
-            socks_port = 9050
-
-        if control_port is None:
-            control_port = 9051
-
+    def __init__(self, data_directory=None, control_password=None):
         if data_directory is None:
             data_directory = tempfile.mkdtemp()
 
         if control_password is None:
             control_password = self.generate_random_password(20)
 
-        self.socks_port = socks_port
-        self.control_port = control_port
         self.data_directory = data_directory
         self.control_password = control_password
 
-        self.tor_process = stem.process.launch_tor_with_config(
-            config={
-                'SocksPort': str(self.socks_port),
-                'ControlPort': str(self.control_port),
-                'HashedControlPassword': self.generate_tor_password(self.control_password),
-                'DataDirectory': self.data_directory
-            },
-            init_msg_handler=self.print_bootstrap_lines
-        )
+        self.socks_port, self.control_port, self.tor_process = self.init_tor_process()
+
+    def init_tor_process(self, attempt=0, max_attempt=5):
+        socks_port = random.randint(10240, 65535)
+        control_port = random.randint(10240, 65535)
+
+        try:
+            process = stem.process.launch_tor_with_config(
+                config={
+                    'SocksPort': str(socks_port),
+                    'ControlPort': str(control_port),
+                    'HashedControlPassword': self.generate_tor_password(self.control_password),
+                    'DataDirectory': self.data_directory
+                },
+                init_msg_handler=self.print_bootstrap_lines
+            )
+            return socks_port, control_port, process
+        except OSError:
+            if attempt < max_attempt:
+                return self.init_tor_process(attempt + 1, max_attempt)
+            raise
 
     def renew_identity(self):
+        print('renewing tor session identity....')
         with Controller.from_port(port=self.control_port) as controller:
             controller.authenticate(password=self.control_password)
             controller.signal(Signal.NEWNYM)
+        print('session identity renewed')
 
     def terminate(self):
         if self.tor_process is None:
@@ -53,7 +59,7 @@ class TorSession:
 
     @staticmethod
     def generate_tor_password(pwd):
-        p = subprocess.Popen(['tor', '--hash-password', str(pwd)], stdout=subprocess.PIPE)
+        p = subprocess.Popen(['tor', '--hash-password', str(pwd)], stdout=subprocess.PIPE, universal_newlines=True)
         pwd, error = p.communicate()
 
         if error is not None:
@@ -63,8 +69,9 @@ class TorSession:
 
     @staticmethod
     def print_bootstrap_lines(line):
-        if "Bootstrapped " in line:
-            print(term.format(line, term.Color.BLUE))
+        if 'Done' in line:
+            # print(term.format(line, term.Color.BLUE))
+            print('tor ready..')
 
     @staticmethod
     def generate_random_password(length):
@@ -79,3 +86,8 @@ class TorSession:
 
     def __del__(self):
         self.terminate()
+
+
+if __name__ == '__main__':
+    t = TorSession()
+    t.terminate()

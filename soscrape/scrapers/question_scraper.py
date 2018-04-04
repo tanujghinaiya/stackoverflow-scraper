@@ -1,7 +1,7 @@
 from enum import Enum
 from bs4 import BeautifulSoup
 
-from soscrape.session import get_session
+from soscrape.utils.session import get_session
 
 
 class AnswerTab(Enum):
