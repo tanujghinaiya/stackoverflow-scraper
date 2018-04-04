@@ -5,17 +5,14 @@ from urllib3 import Retry
 from random import choice
 
 
-def get_session(retries=5, backoff_factor=1, status_forcelist=(500, 502, 504)):
+def get_session(retries=5, backoff_factor=1, status_forcelist=(500, 502, 504), tor_session=None):
     s = requests.Session()
 
     # Should be an empty dictionary if not using tor
-    proxies = {}
-
-    # Should be uncommented if using tor
-    # proxies = {
-    #     'http': 'socks5://127.0.0.1:9150',
-    #     'https': 'socks5://127.0.0.1:9150'
-    # }
+    if not tor_session:
+        proxies = {}
+    else:
+        proxies = tor_session.proxies
 
     s.headers.update({'User-Agent': get_random_user_agent()})
 
