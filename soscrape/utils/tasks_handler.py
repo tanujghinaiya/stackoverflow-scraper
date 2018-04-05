@@ -49,6 +49,8 @@ class TasksHandler:
 
             pbar.finish()
         except KeyboardInterrupt:
+            for w in workers:
+                w.terminate()
             os._exit(1)
         except Exception as e:
             print(e)

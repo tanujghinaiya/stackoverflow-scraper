@@ -28,3 +28,7 @@ class Worker(multiprocessing.Process):
             raise e
         finally:
             return
+
+    def terminate(self):
+        if 'requests_handler' in self.task_kwargs:
+            self.task_kwargs['requests_handler'].close()

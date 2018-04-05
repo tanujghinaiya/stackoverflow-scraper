@@ -14,11 +14,13 @@ class QuestionScraper:
     def __init__(self, url, answer_tab=AnswerTab.ACTIVE, session=None):
         self.url = url
         self.answer_tab = answer_tab
-        self.session = session or get_session()
+        self.session = session
 
-    def scrape(self):
+    def scrape(self, requests_handler=None):
         print("scraping question from {}".format(self.url))
-        res = self.session.get(self.url, params=dict(answertab=self.answer_tab))
+
+        requests_handler = requests_handler or self.session or get_session()
+        res = requests_handler.get(self.url, params=dict(answertab=self.answer_tab))
         soup = BeautifulSoup(res.content, "lxml")
 
         return dict(

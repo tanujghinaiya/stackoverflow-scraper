@@ -61,7 +61,7 @@ class TagSearchScraper:
                 question_summaries = self.scrape_page(requests_handler, current_page)
 
                 for question_summary in question_summaries:
-                    scraped_content.append(self.parse_question_from_question_summary(question_summary))
+                    scraped_content.append(self.parse_question_from_question_summary(question_summary, requests_handler))
                     self.write_to_json(questions, self.save_to)
 
                 current_page += 1
@@ -98,7 +98,7 @@ class TagSearchScraper:
         return n_pages
 
     @staticmethod
-    def parse_question_from_question_summary(page_soup):
+    def parse_question_from_question_summary(page_soup, request_handler):
         link = page_soup.find("a", {"class": "question-hyperlink"})
         url = "{}{}".format(STACK_OVERFLOW_BASE_URL, link.get("href"))
 
@@ -116,7 +116,7 @@ class TagSearchScraper:
                 )
                 for tag in page_soup.find_all("a", {"class": "post-tag"})
             ],
-            question=QuestionScraper(url).scrape()
+            question=QuestionScraper(url).scrape(request_handler)
         )
 
     @property

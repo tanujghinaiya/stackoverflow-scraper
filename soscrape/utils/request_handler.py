@@ -46,6 +46,9 @@ class RequestsHandler:
             # print(req.content)
             return False
 
-    def __del__(self):
+    def close(self):
         self.tor_session.terminate()
         self.session.close()
+
+    def __del__(self):
+        self.close()
