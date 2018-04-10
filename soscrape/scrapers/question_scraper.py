@@ -11,10 +11,12 @@ class AnswerTab(Enum):
 
 
 class QuestionScraper:
-    def __init__(self, url, answer_tab=AnswerTab.ACTIVE, session=None):
+    def __init__(self, url, answer_tab=AnswerTab.ACTIVE, session=None, tag_blacklist=("pre",), tag_whitelist=("a",)):
         self.url = url
         self.answer_tab = answer_tab
         self.session = session
+        self.tag_blacklist = tag_blacklist
+        self.tag_whitelist = tag_whitelist
 
     def scrape(self, requests_handler=None):
         print("scraping question from {}".format(self.url))
@@ -28,12 +30,27 @@ class QuestionScraper:
             answers=[self.scrape_post(answer) for answer in soup.find_all("div", {"class": "answer"})]
         )
 
-    @staticmethod
-    def scrape_post(post_soup):
+    def scrape_post(self, post_soup):
+        soup = post_soup.find("div", {"class": "post-text"})
+        soup = self.remove_blacklisted_tags(soup)
         return dict(
-            body=post_soup.find("div", {"class": "post-text"}).text,
-            comments=QuestionScraper.scrape_comments(post_soup)
+            body=soup.text,
+            comments=self.scrape_comments(post_soup)
         )
+
+    def remove_blacklisted_tags(self, soup):
+        for tag in self.tag_blacklist:
+            tag_soup = soup.find(tag)
+            if tag_soup is not None:
+                tag_soup.decompose()
+        return soup
+
+    def clean_tags(self, soup):
+        for tag in self.tag_whitelist:
+            for tag_soup in soup.select(tag):
+                tag_soup.unwrap()
+
+        return soup
 
     @staticmethod
     def scrape_comments(soup):
