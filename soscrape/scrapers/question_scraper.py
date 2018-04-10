@@ -1,5 +1,6 @@
+import re
 from enum import Enum
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag, NavigableString
 
 from soscrape.utils.session import get_session
 
@@ -33,8 +34,9 @@ class QuestionScraper:
     def scrape_post(self, post_soup):
         soup = post_soup.find("div", {"class": "post-text"})
         soup = self.remove_blacklisted_tags(soup)
+        # soup = self.clean_tags(soup)
         return dict(
-            body=soup.text,
+            body=self.clean_all_tags(soup),
             comments=self.scrape_comments(post_soup)
         )
 
@@ -51,6 +53,31 @@ class QuestionScraper:
                 tag_soup.unwrap()
 
         return soup
+
+    def clean_all_tags(self, soup):
+        text_blobs = []
+
+        def clean_tag(sp):
+            if isinstance(sp, Tag):
+                tag = sp.name
+                if tag not in self.tag_blacklist:
+                    for c in sp.children:
+                        content = clean_tag(c)
+                        if content is None:
+                            continue
+                        text_blobs.append(content)
+
+            if isinstance(sp, NavigableString):
+                return sp
+
+        clean_tag(soup)
+
+        text_blobs = filter(lambda x: x is not None, text_blobs)
+        text = ''.join(text_blobs)
+        text = re.sub("\s+", " ", text)
+        text = re.sub("\n+", "", text)
+
+        return text
 
     @staticmethod
     def scrape_comments(soup):
